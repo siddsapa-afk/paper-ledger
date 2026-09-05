@@ -1,4 +1,4 @@
-<title>Paper Ledger</title>
+<title>Live Ledger</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Libre+Franklin:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -15,6 +15,7 @@
     --rule-soft:   #DEE3DF;
     --good:        #0ca30c;
     --critical:    #d03b3b;
+    --live-dot:    #1baf7a;
     --shadow:      0 1px 2px rgba(23,38,42,0.06), 0 8px 24px -12px rgba(23,38,42,0.18);
     --cat-1: #2a78d6; --cat-2: #eb6834; --cat-3: #1baf7a; --cat-4: #eda100;
     --cat-5: #e87ba4; --cat-6: #008300; --cat-7: #4a3aa7; --cat-8: #e34948;
@@ -34,6 +35,7 @@
       --rule-soft:   #202B2D;
       --good:        #0ca30c;
       --critical:    #e66767;
+      --live-dot:    #199e70;
       --shadow:      0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
       --cat-1: #3987e5; --cat-2: #d95926; --cat-3: #199e70; --cat-4: #c98500;
       --cat-5: #d55181; --cat-6: #008300; --cat-7: #9085e9; --cat-8: #e66767;
@@ -53,6 +55,7 @@
     --rule-soft:   #202B2D;
     --good:        #0ca30c;
     --critical:    #e66767;
+    --live-dot:    #199e70;
     --shadow:      0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
     --cat-1: #3987e5; --cat-2: #d95926; --cat-3: #199e70; --cat-4: #c98500;
     --cat-5: #d55181; --cat-6: #008300; --cat-7: #9085e9; --cat-8: #e66767;
@@ -286,8 +289,17 @@
     font-size: 11px;
     color: var(--ink-muted);
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
   }
   .price-caption.err { color: var(--critical); }
+  .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--live-dot);
+    flex: none;
+  }
   .pill {
     display: inline-flex;
     align-items: center;
@@ -414,15 +426,6 @@
   }
   footer a { color: var(--accent); }
 
-  .capability-notice {
-    background: var(--accent-soft);
-    color: var(--ink-soft);
-    border: 1px solid var(--rule);
-    border-radius: 10px;
-    padding: 10px 16px;
-    font-size: 13px;
-  }
-
   @media (max-width: 720px) {
     .stats { grid-template-columns: repeat(2, 1fr); }
     #add-form { grid-template-columns: 1fr 1fr; }
@@ -438,16 +441,12 @@
 
   <header>
     <div>
-      <h1 class="wordmark">Paper <span>Ledger</span></h1>
-      <p class="tagline">Log a trade, price it today, and watch what gain and loss actually look like.
-        <a href="live/index.html">Try real prices from Alpaca →</a></p>
+      <h1 class="wordmark">Live <span>Ledger</span></h1>
+      <p class="tagline">Same tracker, real prices — pulled from your own Alpaca paper account.
+        <a href="../index.html">Switch to manual entry →</a></p>
     </div>
     <div class="header-meta" id="last-saved">Saved on this device only</div>
   </header>
-
-  <div class="capability-notice" id="capability-notice" hidden>
-    Approximate price estimates aren't available in this browser — enter every price yourself below.
-  </div>
 
   <section class="stats" aria-label="Portfolio summary">
     <div class="stat-tile">
@@ -472,7 +471,7 @@
 
   <section class="card">
     <h2>Add a holding</h2>
-    <p class="hint">Enter what you bought, including today's price. A ↻ shortcut appears here when approximate price estimates are available.</p>
+    <p class="hint">Enter a ticker and share count, then click ↻ to pull today's real price from Alpaca — or type in what you actually paid.</p>
     <form id="add-form" novalidate>
       <div class="field">
         <label for="in-ticker">Ticker</label>
@@ -486,8 +485,8 @@
         <label for="in-price">Buy price ($)</label>
         <div class="price-row">
           <input id="in-price" placeholder="150.00" inputmode="decimal" required autocomplete="off">
-          <button type="button" id="fetch-buy-price" class="price-refresh" hidden disabled
-            aria-label="Fill with today's approximate price">↻</button>
+          <button type="button" id="fetch-buy-price" class="price-refresh"
+            aria-label="Fill with today's real price">↻</button>
         </div>
       </div>
       <button class="primary" type="submit">Add holding</button>
@@ -497,7 +496,7 @@
 
   <section class="card">
     <h2>Holdings</h2>
-    <p class="hint">Update "Price today" whenever you check the market. A ↻ shortcut appears here when approximate price estimates are available.</p>
+    <p class="hint">Click ↻ on any row to refresh its real price from Alpaca, or type a price in yourself.</p>
     <div class="table-scroll">
       <table>
         <thead>
@@ -532,9 +531,10 @@
   </section>
 
   <footer>
-    Prices marked "≈ estimate" are Claude's approximate best guess, not a live market feed — treat them as a
-    ballpark and swap in the real number whenever you know it. Everything else is saved only in this browser,
-    on this device.
+    Prices marked "● live" come from your own Alpaca paper-trading account's real IEX market feed, fetched
+    through a small proxy that only ever forwards a ticker symbol — it never exposes your Alpaca account or
+    credentials to this page. IEX is one real exchange, so prices can differ by a few cents from the full
+    consolidated tape. Holdings are shared with the manual version and saved only in this browser, on this device.
   </footer>
 
 </div>
@@ -548,6 +548,7 @@
   var STORAGE_KEY = "paperLedgerHoldings_v1";
   var SEEDED_KEY = "paperLedgerSeeded_v1";
   var CAT_COLORS = ["--cat-1","--cat-2","--cat-3","--cat-4","--cat-5","--cat-6","--cat-7","--cat-8"];
+  var QUOTE_URL = "https://paper-ledger-quotes.siddsapa.workers.dev/price";
 
   var money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
   var moneySigned = function (n) {
@@ -562,6 +563,23 @@
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   };
   var uid = function () { return Math.random().toString(36).slice(2, 10); };
+
+  function formatAsOf(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    var now = new Date();
+    var sameDay = d.toDateString() === now.toDateString();
+    return sameDay
+      ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : d.toLocaleDateString([], { month: "short", day: "numeric" }) + ", " +
+        d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function describeQuoteError(code) {
+    if (code === "unknown_symbol") return "Unknown ticker on Alpaca";
+    if (code === "invalid_symbol") return "Not a valid ticker";
+    return "Price unavailable right now";
+  }
 
   function loadHoldings() {
     try {
@@ -596,72 +614,33 @@
     try { localStorage.setItem(SEEDED_KEY, "1"); } catch (e) {}
   }
 
-  // ---- approximate price estimates (via the sample capability) ----
-  var sampleApi = null;
-
-  function estimatePrompt(ticker) {
-    return "Give an approximate current stock price in US dollars for the ticker symbol \"" + ticker +
-      "\". Use your best knowledge; if you cannot know today's exact price, give your best estimate from " +
-      "the most recent price you know of. Reply with ONLY a JSON object, no other text: " +
-      "{\"price\": <number>, \"asOf\": \"<a few words on how recent this estimate is>\"}. " +
-      "If \"" + ticker + "\" is not a real stock or fund ticker, reply {\"price\": null, \"asOf\": \"\"}.";
-  }
-
-  function fetchEstimate(h, opts) {
-    opts = opts || {};
-    if (!sampleApi || h.estimating) return;
-    h.estimating = true;
-    h.estimateError = null;
+  // ---- real prices via the Cloudflare Worker -> Alpaca Market Data API ----
+  function fetchLivePrice(h) {
+    if (h.fetching) return;
+    h.fetching = true;
+    h.priceError = null;
     renderTable();
-    sampleApi.json(estimatePrompt(h.ticker), {
-      modelTier: "quick",
-      cache: opts.refresh ? { gcTime: 300000, refresh: true } : true
-    }).then(function (data) {
-      h.estimating = false;
-      if (data && typeof data.price === "number" && isFinite(data.price) && data.price > 0) {
-        h.currentPrice = data.price;
-        h.priceSource = "estimate";
-        h.priceAsOf = typeof data.asOf === "string" ? data.asOf : "";
-      } else {
-        h.estimateError = "No estimate for \"" + h.ticker + "\"";
-      }
-      render();
-    }).catch(function (e) {
-      h.estimating = false;
-      h.estimateError = (e && e.code === "not_granted") ? "Estimates declined" : "Estimate unavailable";
-      render();
-    });
-  }
-
-  function showCapabilityNotice() {
-    var el = document.getElementById("capability-notice");
-    if (el) el.hidden = false;
-  }
-
-  function initSampling() {
-    if (!window.claude || typeof window.claude.use !== "function") {
-      showCapabilityNotice();
-      return;
-    }
-    window.claude.use("sample").then(function (api) {
-      sampleApi = api;
-      if (!sampleApi) {
-        showCapabilityNotice();
-        return;
-      }
-      renderTable();
-      buyPriceBtn.hidden = false;
-      updateBuyPriceBtn();
-      holdings.filter(function (h) { return !h.priceSource; }).forEach(function (h) {
-        fetchEstimate(h);
+    fetch(QUOTE_URL + "?symbol=" + encodeURIComponent(h.ticker))
+      .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+      .then(function (res) {
+        h.fetching = false;
+        if (res.ok && res.data && typeof res.data.price === "number") {
+          h.currentPrice = res.data.price;
+          h.priceSource = "live";
+          h.priceAsOf = res.data.asOf;
+        } else {
+          h.priceError = describeQuoteError(res.data && res.data.error);
+        }
+        render();
+      })
+      .catch(function () {
+        h.fetching = false;
+        h.priceError = "Couldn't reach the price service";
+        render();
       });
-    }).catch(function () {
-      sampleApi = null;
-      showCapabilityNotice();
-    });
   }
 
-  // ---- "Add a holding" form: fetch an approximate buy price on demand ----
+  // ---- "Add a holding" form: fetch today's real buy price on demand ----
   var tickerEl = document.getElementById("in-ticker");
   var sharesEl = document.getElementById("in-shares");
   var priceEl = document.getElementById("in-price");
@@ -670,29 +649,29 @@
 
   function updateBuyPriceBtn() {
     var busy = buyPriceBtn.dataset.busy === "1";
-    buyPriceBtn.disabled = !sampleApi || busy || !tickerEl.value.trim();
+    buyPriceBtn.disabled = busy || !tickerEl.value.trim();
     buyPriceBtn.classList.toggle("busy", busy);
   }
   tickerEl.addEventListener("input", updateBuyPriceBtn);
+  updateBuyPriceBtn();
 
   buyPriceBtn.addEventListener("click", function () {
     var ticker = tickerEl.value.trim().toUpperCase();
-    if (!ticker || !sampleApi) return;
+    if (!ticker) return;
     formErrorEl.textContent = "";
     buyPriceBtn.dataset.busy = "1";
     updateBuyPriceBtn();
-    sampleApi.json(estimatePrompt(ticker), { modelTier: "quick", cache: true })
-      .then(function (data) {
-        if (data && typeof data.price === "number" && isFinite(data.price) && data.price > 0) {
-          priceEl.value = data.price.toFixed(2);
+    fetch(QUOTE_URL + "?symbol=" + encodeURIComponent(ticker))
+      .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+      .then(function (res) {
+        if (res.ok && res.data && typeof res.data.price === "number") {
+          priceEl.value = res.data.price.toFixed(2);
         } else {
-          formErrorEl.textContent = "No estimate for \"" + ticker + "\" — enter the price yourself.";
+          formErrorEl.textContent = describeQuoteError(res.data && res.data.error) + " — enter the price yourself.";
         }
       })
-      .catch(function (e) {
-        formErrorEl.textContent = (e && e.code === "not_granted")
-          ? "Estimates declined — enter the price yourself."
-          : "Estimate unavailable — enter the price yourself.";
+      .catch(function () {
+        formErrorEl.textContent = "Couldn't reach the price service — enter the price yourself.";
       })
       .finally(function () {
         buyPriceBtn.dataset.busy = "0";
@@ -794,40 +773,38 @@
           h.currentPrice = v;
           h.priceSource = "manual";
           h.priceAsOf = null;
-          h.estimateError = null;
+          h.priceError = null;
         }
         render();
       });
       priceRow.appendChild(priceInput);
 
-      if (sampleApi) {
-        var refreshBtn = document.createElement("button");
-        refreshBtn.type = "button";
-        refreshBtn.className = "price-refresh";
-        refreshBtn.textContent = "↻";
-        refreshBtn.disabled = !!h.estimating;
-        refreshBtn.classList.toggle("busy", !!h.estimating);
-        refreshBtn.setAttribute("aria-label", "Get an approximate price for " + h.ticker);
-        refreshBtn.addEventListener("click", function () { fetchEstimate(h, { refresh: true }); });
-        priceRow.appendChild(refreshBtn);
-      }
+      var refreshBtn = document.createElement("button");
+      refreshBtn.type = "button";
+      refreshBtn.className = "price-refresh";
+      refreshBtn.textContent = "↻";
+      refreshBtn.disabled = !!h.fetching;
+      refreshBtn.classList.toggle("busy", !!h.fetching);
+      refreshBtn.setAttribute("aria-label", "Get today's real price for " + h.ticker);
+      refreshBtn.addEventListener("click", function () { fetchLivePrice(h); });
+      priceRow.appendChild(refreshBtn);
       priceCell.appendChild(priceRow);
 
       var caption = document.createElement("div");
-      if (h.estimating) {
+      if (h.fetching) {
         caption.className = "price-caption";
-        caption.textContent = "estimating…";
-      } else if (h.estimateError) {
+        caption.textContent = "fetching…";
+      } else if (h.priceError) {
         caption.className = "price-caption err";
-        caption.textContent = h.estimateError;
-      } else if (h.priceSource === "estimate") {
+        caption.textContent = h.priceError;
+      } else if (h.priceSource === "live") {
         caption.className = "price-caption";
-        caption.textContent = "≈ estimate" + (h.priceAsOf ? " · " + h.priceAsOf : "");
+        caption.innerHTML = '<span class="live-dot"></span>live · ' + escapeHtml(formatAsOf(h.priceAsOf));
       } else if (h.priceSource === "manual") {
         caption.className = "price-caption";
         caption.textContent = "entered by you";
       }
-      if (caption.textContent) priceCell.appendChild(caption);
+      if (caption.textContent || caption.innerHTML) priceCell.appendChild(caption);
 
       tdPrice.appendChild(priceCell);
       tr.appendChild(tdPrice);
@@ -985,10 +962,9 @@
     tickerEl.value = ""; sharesEl.value = ""; priceEl.value = "";
     tickerEl.focus();
     render();
-    fetchEstimate(newHolding);
+    fetchLivePrice(newHolding);
   });
 
   render();
-  initSampling();
 })();
 </script>
