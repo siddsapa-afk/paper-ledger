@@ -442,7 +442,7 @@
       <p class="tagline">Log a trade, price it today, and watch what gain and loss actually look like.
         <a href="live/index.html">Try real prices from Alpaca →</a></p>
     </div>
-    <div class="header-meta" id="last-saved">Saved on this device only</div>
+    <div class="header-meta" id="last-saved">Loading…</div>
   </header>
 
   <div class="capability-notice" id="capability-notice" hidden>
@@ -533,20 +533,19 @@
 
   <footer>
     Prices marked "≈ estimate" are Claude's approximate best guess, not a live market feed — treat them as a
-    ballpark and swap in the real number whenever you know it. Everything else is saved only in this browser,
-    on this device.
+    ballpark and swap in the real number whenever you know it. Holdings are saved centrally, shared with the
+    live-price version, and the same on any device you open this page from.
   </footer>
 
 </div>
 
 <div class="tooltip" id="tooltip" role="tooltip"></div>
 
+<script src="storage.js"></script>
 <script>
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "paperLedgerHoldings_v1";
-  var SEEDED_KEY = "paperLedgerSeeded_v1";
   var CAT_COLORS = ["--cat-1","--cat-2","--cat-3","--cat-4","--cat-5","--cat-6","--cat-7","--cat-8"];
 
   var money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -563,37 +562,16 @@
   };
   var uid = function () { return Math.random().toString(36).slice(2, 10); };
 
-  function loadHoldings() {
-    try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (e) {}
-    return null;
+  var holdings = [];
+
+  function setSyncStatus(synced) {
+    document.getElementById("last-saved").textContent = synced
+      ? "Synced · " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : "Offline copy — changes will sync once reconnected";
   }
 
   function saveHoldings() {
-    try {
-      var toSave = holdings.map(function (h) {
-        return {
-          id: h.id, ticker: h.ticker, shares: h.shares, buyPrice: h.buyPrice,
-          currentPrice: h.currentPrice, priceSource: h.priceSource, priceAsOf: h.priceAsOf
-        };
-      });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-      document.getElementById("last-saved").textContent =
-        "Saved on this device · " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    } catch (e) {
-      document.getElementById("last-saved").textContent = "Couldn't save (private browsing?)";
-    }
-  }
-
-  var holdings = loadHoldings();
-  if (holdings === null) {
-    holdings = [
-      { id: uid(), ticker: "AAPL", shares: 5, buyPrice: 150, currentPrice: 150 },
-      { id: uid(), ticker: "VOO", shares: 3, buyPrice: 410, currentPrice: 410 }
-    ];
-    try { localStorage.setItem(SEEDED_KEY, "1"); } catch (e) {}
+    LedgerStorage.save(holdings).then(function (res) { setSyncStatus(res.synced); });
   }
 
   // ---- approximate price estimates (via the sample capability) ----
@@ -988,7 +966,14 @@
     fetchEstimate(newHolding);
   });
 
-  render();
-  initSampling();
+  LedgerStorage.load().then(function (res) {
+    holdings = res.holdings;
+    setSyncStatus(res.synced);
+    renderStats();
+    renderTable();
+    renderGainLossChart();
+    renderMixChart();
+    initSampling();
+  });
 })();
 </script>

@@ -445,7 +445,7 @@
       <p class="tagline">Same tracker, real prices — pulled from your own Alpaca paper account.
         <a href="../index.html">Switch to manual entry →</a></p>
     </div>
-    <div class="header-meta" id="last-saved">Saved on this device only</div>
+    <div class="header-meta" id="last-saved">Loading…</div>
   </header>
 
   <section class="stats" aria-label="Portfolio summary">
@@ -534,19 +534,19 @@
     Prices marked "● live" come from your own Alpaca paper-trading account's real IEX market feed, fetched
     through a small proxy that only ever forwards a ticker symbol — it never exposes your Alpaca account or
     credentials to this page. IEX is one real exchange, so prices can differ by a few cents from the full
-    consolidated tape. Holdings are shared with the manual version and saved only in this browser, on this device.
+    consolidated tape. Holdings are saved centrally and shared with the manual version — the same list on any
+    device you open this page from.
   </footer>
 
 </div>
 
 <div class="tooltip" id="tooltip" role="tooltip"></div>
 
+<script src="../storage.js"></script>
 <script>
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "paperLedgerHoldings_v1";
-  var SEEDED_KEY = "paperLedgerSeeded_v1";
   var CAT_COLORS = ["--cat-1","--cat-2","--cat-3","--cat-4","--cat-5","--cat-6","--cat-7","--cat-8"];
   var QUOTE_URL = "https://paper-ledger-quotes.siddsapa.workers.dev/price";
 
@@ -581,37 +581,16 @@
     return "Price unavailable right now";
   }
 
-  function loadHoldings() {
-    try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (e) {}
-    return null;
+  var holdings = [];
+
+  function setSyncStatus(synced) {
+    document.getElementById("last-saved").textContent = synced
+      ? "Synced · " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : "Offline copy — changes will sync once reconnected";
   }
 
   function saveHoldings() {
-    try {
-      var toSave = holdings.map(function (h) {
-        return {
-          id: h.id, ticker: h.ticker, shares: h.shares, buyPrice: h.buyPrice,
-          currentPrice: h.currentPrice, priceSource: h.priceSource, priceAsOf: h.priceAsOf
-        };
-      });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-      document.getElementById("last-saved").textContent =
-        "Saved on this device · " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    } catch (e) {
-      document.getElementById("last-saved").textContent = "Couldn't save (private browsing?)";
-    }
-  }
-
-  var holdings = loadHoldings();
-  if (holdings === null) {
-    holdings = [
-      { id: uid(), ticker: "AAPL", shares: 5, buyPrice: 150, currentPrice: 150 },
-      { id: uid(), ticker: "VOO", shares: 3, buyPrice: 410, currentPrice: 410 }
-    ];
-    try { localStorage.setItem(SEEDED_KEY, "1"); } catch (e) {}
+    LedgerStorage.save(holdings).then(function (res) { setSyncStatus(res.synced); });
   }
 
   // ---- real prices via the Cloudflare Worker -> Alpaca Market Data API ----
@@ -965,6 +944,13 @@
     fetchLivePrice(newHolding);
   });
 
-  render();
+  LedgerStorage.load().then(function (res) {
+    holdings = res.holdings;
+    setSyncStatus(res.synced);
+    renderStats();
+    renderTable();
+    renderGainLossChart();
+    renderMixChart();
+  });
 })();
 </script>
