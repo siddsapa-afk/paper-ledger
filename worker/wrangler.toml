@@ -1,0 +1,7 @@
+name = "paper-ledger-quotes"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[[kv_namespaces]]
+binding = "HOLDINGS"
+id = "c67ec193d50b48ed99e0e9fc6a752931"
