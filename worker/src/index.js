@@ -2,11 +2,15 @@ const ALLOWED_ORIGIN = "https://siddsapa-afk.github.io";
 const SYMBOL_RE = /^[A-Z.]{1,10}$/;
 const HOLDINGS_KEY = "holdings";
 const MAX_HOLDINGS = 50;
+const MAX_SALES = 200;
 
-const DEFAULT_HOLDINGS = [
-  { id: "seed-aapl", ticker: "AAPL", shares: 5, buyPrice: 150, currentPrice: 150 },
-  { id: "seed-voo", ticker: "VOO", shares: 3, buyPrice: 410, currentPrice: 410 },
-];
+const DEFAULT_DATA = {
+  holdings: [
+    { id: "seed-aapl", ticker: "AAPL", shares: 5, buyPrice: 150, currentPrice: 150 },
+    { id: "seed-voo", ticker: "VOO", shares: 3, buyPrice: 410, currentPrice: 410 },
+  ],
+  sales: [],
+};
 
 function corsHeaders(origin) {
   const allow = origin === ALLOWED_ORIGIN ? origin : ALLOWED_ORIGIN;
@@ -65,10 +69,48 @@ function sanitizeHoldings(input) {
   return out;
 }
 
+function sanitizeSales(input) {
+  if (!Array.isArray(input)) return null;
+  const out = [];
+  for (const raw of input.slice(0, MAX_SALES)) {
+    if (!raw || typeof raw !== "object") continue;
+    const ticker = cleanString(raw.ticker, 10).trim().toUpperCase();
+    const shares = cleanNumber(raw.shares);
+    const buyPrice = cleanNumber(raw.buyPrice);
+    const sellPrice = cleanNumber(raw.sellPrice);
+    const gain = cleanNumber(raw.gain);
+    if (!ticker || shares === null || shares <= 0 || buyPrice === null || buyPrice < 0 || sellPrice === null || sellPrice < 0 || gain === null) {
+      continue;
+    }
+    out.push({
+      id: cleanString(raw.id, 40) || crypto.randomUUID(),
+      ticker,
+      shares,
+      buyPrice,
+      sellPrice,
+      gain,
+      soldAt: cleanString(raw.soldAt, 40) || new Date().toISOString(),
+    });
+  }
+  return out;
+}
+
+function sanitizeData(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
+  const holdings = sanitizeHoldings(input.holdings);
+  const sales = sanitizeSales(input.sales);
+  if (holdings === null || sales === null) return null;
+  return { holdings, sales };
+}
+
 async function handleGetHoldings(env, origin) {
   let stored = await env.HOLDINGS.get(HOLDINGS_KEY, { type: "json" });
   if (stored === null) {
-    stored = DEFAULT_HOLDINGS;
+    stored = DEFAULT_DATA;
+    await env.HOLDINGS.put(HOLDINGS_KEY, JSON.stringify(stored));
+  } else if (Array.isArray(stored)) {
+    // migrate from the pre-sales format, where the key held a bare holdings array
+    stored = { holdings: stored, sales: [] };
     await env.HOLDINGS.put(HOLDINGS_KEY, JSON.stringify(stored));
   }
   return json(stored, 200, origin);
@@ -85,12 +127,12 @@ async function handlePostHoldings(request, env, origin) {
   } catch (e) {
     return json({ error: "invalid_json" }, 400, origin);
   }
-  const clean = sanitizeHoldings(body);
+  const clean = sanitizeData(body);
   if (clean === null) {
     return json({ error: "invalid_shape" }, 400, origin);
   }
   await env.HOLDINGS.put(HOLDINGS_KEY, JSON.stringify(clean));
-  return json({ ok: true, count: clean.length }, 200, origin);
+  return json({ ok: true, holdings: clean.holdings.length, sales: clean.sales.length }, 200, origin);
 }
 
 async function handlePrice(url, env, origin) {
