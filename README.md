@@ -55,33 +55,56 @@ flowchart LR
 
 - **Add a holding**: ticker, share count, and a buy price (typed in, or
   fetched with the ↻ button).
-- **Stat tiles**: total invested, current value, total gain/loss, and overall
-  return %.
+- **Sell a holding**: the Sell button opens an inline form (shares to sell,
+  sell price) and books a realized gain/loss into a sales history — selling
+  part of a position keeps the rest open. The ✕ button, by contrast, just
+  deletes a holding with nothing recorded, for correcting mistakes.
+- **Stat tiles**: Invested and Current value (open positions), Unrealized
+  (open positions vs. cost), Realized (from sales), and an All-time tile
+  combining both — the headline "am I making money" number.
 - **Holdings table**: editable "price today" per row, with a status caption
   (`≈ estimate`, `● live`, or `entered by you`) and a gain/loss pill.
+- **Sold table**: every completed sale, with its realized gain/loss and date.
 - **Charts**: a diverging bar chart of gain/loss per holding, and a stacked
   bar showing portfolio mix by value, both with hover tooltips.
-- **Cross-device sync**: the same holdings list on any browser or computer
-  that opens either page (see [Architecture](#architecture)).
+- **Cross-device sync**: the same holdings and sales on any browser or
+  computer that opens either page (see [Architecture](#architecture)).
 
 ### Data model
 
-Each holding stored via the Worker looks like:
+The Worker stores one document: an open-positions list and a sales history.
 
 ```json
 {
-  "id": "seed-aapl",
-  "ticker": "AAPL",
-  "shares": 5,
-  "buyPrice": 150,
-  "currentPrice": 227.5,
-  "priceSource": "live",
-  "priceAsOf": "2026-09-04T19:59:56Z"
+  "holdings": [
+    {
+      "id": "seed-aapl",
+      "ticker": "AAPL",
+      "shares": 5,
+      "buyPrice": 150,
+      "currentPrice": 227.5,
+      "priceSource": "live",
+      "priceAsOf": "2026-09-04T19:59:56Z"
+    }
+  ],
+  "sales": [
+    {
+      "id": "t1",
+      "ticker": "VOO",
+      "shares": 2,
+      "buyPrice": 410,
+      "sellPrice": 452.3,
+      "gain": 84.6,
+      "soldAt": "2026-09-20T14:02:11Z"
+    }
+  ]
 }
 ```
 
 `priceSource` is `"manual"`, `"estimate"` (Claude), or `"live"` (Alpaca) — used
-only to choose which caption to show.
+only to choose which caption to show. A sale's `gain` is
+`shares * (sellPrice - buyPrice)`, computed once and stored, not recalculated
+later.
 
 ## Worker (`worker/`)
 
@@ -90,8 +113,8 @@ Cloudflare Worker source, deployed independently of GitHub Pages.
 | Endpoint | Method | Purpose |
 |---|---|---|
 | `/price?symbol=TSLA` | GET | Real last-trade price from Alpaca's Market Data API (IEX feed), using the Worker's own Alpaca paper-account keys |
-| `/holdings` | GET | Returns the shared portfolio from KV; seeds two example holdings on the very first-ever call |
-| `/holdings` | POST | Replaces the shared portfolio (server-side validated: shape, types, a 50-holding cap, 50 KB body cap) |
+| `/holdings` | GET | Returns `{holdings, sales}` from KV; seeds two example holdings on the very first-ever call, and migrates data saved in the older bare-array shape |
+| `/holdings` | POST | Replaces `{holdings, sales}` (server-side validated: shape, types, a 50-holding / 200-sale cap, 50 KB body cap) |
 
 CORS is restricted to `https://siddsapa-afk.github.io`. Alpaca credentials are
 stored as encrypted Worker secrets (`APCA_API_KEY_ID`, `APCA_API_SECRET_KEY`)
